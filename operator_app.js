@@ -14,19 +14,42 @@ var connector = new builder.ConsoleConnector().listen();
 var bot = new builder.UniversalBot(connector);
 
 var userAddress = undefined;
-var userName;
+var userName = "";
 
 var answeringNow = false;
 var questionsQueue = [];
 
-bot.dialog('/', [
+bot.dialog('/getUserName', [
     function (session) {
         builder.Prompts.text(session, "Здравствуйте, как вас зовут?");
     },
     function (session, results) {
         userName = results.response;
+        session.beginDialog('/waiting_question_chat');
+    }
+]);
+
+bot.dialog('/waiting_question_chat', [
+    function (session) {
+        if (session.userData.firstWaitingTurn)
+            builder.Prompts.text(session, "Здравствуйте, " + userName + ", вы зашли в систему как оператор. Вам будут приходить вопросы, на которые еще нет ответа в базе.");
+        else
+            builder.Prompts.text(session, "Вопросов пока что нет.");
+    },
+    function (session) {
+        session.userData.firstWaitingTurn = false;
+        session.replaceDialog('/waiting_question_chat');
+    }
+]);
+
+bot.dialog('/', [
+    function (session) {
         userAddress = session.message.address;
-        session.send("Здравствуйте, %s, вы зашли в систему как оператор. Вам будут приходить вопросы, на которые еще нет ответа в базе.", userName);
+        session.userData.firstWaitingTurn = true;
+        if (userName == "")
+            session.beginDialog('/getUserName');
+        else
+            session.beginDialog('/waiting_question_chat');
     }
 ]);
 
@@ -39,7 +62,8 @@ bot.dialog('/question_received', [
         //TODO: send answer to Tolya's script
         answeringNow = false;
         sendAnswer(results.response);
-        session.endDialog("Спасибо за ответ, %s! Система запомнит его.", userName);
+        session.send("Спасибо за ответ, %s! Система запомнит его.", userName);
+        session.replaceDialog('/waiting_question_chat');
     }
 ]);
 

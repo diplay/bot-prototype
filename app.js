@@ -28,7 +28,7 @@ var userAddress = undefined;
 var waitingForAnswer = false;
 
 function askOperator(question) {
-    client.write(JSON.stringify({'question': question}));
+    client.write(JSON.stringify({'target': 'operator', 'question': question}));
     waitingForAnswer = true;
 }
 
@@ -41,31 +41,42 @@ function showAnswer(answer) {
 
 bot.dialog('/', [
     function (session) {
-        builder.Prompts.text(session, "Здравствуйте, что вы хотите узнать? Вы можете задать вопрос по трудовому кодексу РФ.");
+        if (!session.userData.alreadyHello) {
+            session.userData.alreadyHello = true;
+            builder.Prompts.text(session, "Здравствуйте, что вы хотите узнать? Вы можете задать вопрос по трудовому кодексу РФ.");
+        } else {
+            builder.Prompts.text(session, "Вы можете задать еще один вопрос по трудовому кодексу РФ.");
+        }
     },
     function (session, results) {
-        //TODO: pass question to Tolya's script and receive a result
-        session.send("К сожалению, я не понял вас. Подождите немного, пока оператор лично ответит на ваш вопрос.");
+        session.send("К сожалению, я не понял вас.");
         userAddress = session.message.address;
         askOperator(results.response);
-        session.beginDialog('/waiting_chat');
+        session.userData.firstWaitingTurn = true;
+        session.beginDialog('/waiting_operator_chat');
     }
 ]);
 
 bot.dialog('/answer_received', [
     function (session, args) {
-        session.endDialog("Оператор ответил вам:\n%s", args.answer);
+        session.send("Оператор ответил вам:\n%s", args.answer);
+        session.replaceDialog('/');
     }
 ]);
 
-bot.dialog('/waiting_chat', [
+bot.dialog('/waiting_operator_chat', [
     function (session) {
-        if (waitingForAnswer)
-            session.send("Оператор пока что не ответил, подождите немного.");
-        else
+        if (waitingForAnswer) {
+            if (session.userData.firstWaitingTurn)
+                builder.Prompts.text(session, "Подождите немного, пока оператор лично ответит на ваш вопрос.");
+            else
+                builder.Prompts.text(session, "Оператор пока что не ответил, подождите немного.");
+        } else {
             session.endDialog();
+        }
     },
     function (session) {
-        session.replaceDialog('/waiting_chat');
+        session.userData.firstWaitingTurn = false;
+        session.replaceDialog('/waiting_operator_chat');
     }
 ]);
