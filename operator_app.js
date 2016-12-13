@@ -31,20 +31,21 @@ bot.dialog('/getUserName', [
 
 bot.dialog('/waiting_question_chat', [
     function (session) {
-        if (session.userData.firstWaitingTurn)
+        if (session.userData.firstWaitingTurn) {
+            session.userData.firstWaitingTurn = false;
             builder.Prompts.text(session, "Здравствуйте, " + userName + ", вы зашли в систему как оператор. Вам будут приходить вопросы, на которые еще нет ответа в базе.");
-        else
+        } else {
             builder.Prompts.text(session, "Вопросов пока что нет.");
+        }
+        userAddress = session.message.address;
     },
     function (session) {
-        session.userData.firstWaitingTurn = false;
         session.replaceDialog('/waiting_question_chat');
     }
 ]);
 
 bot.dialog('/', [
     function (session) {
-        userAddress = session.message.address;
         session.userData.firstWaitingTurn = true;
         if (userName == "")
             session.beginDialog('/getUserName');
@@ -56,14 +57,18 @@ bot.dialog('/', [
 bot.dialog('/question_received', [
     function (session, args) {
         answeringNow = true;
+        session.userData.currentQuestion = args.question;
         builder.Prompts.text(session, "Пришел вопрос:\n" + args.question + "\nВаш ответ:");
     },
     function (session, results) {
         //TODO: send answer to Tolya's script
         answeringNow = false;
-        sendAnswer(results.response);
+        sendAnswer(session.userData.currentQuestion, results.response);
         session.send("Спасибо за ответ, %s! Система запомнит его.", userName);
-        session.replaceDialog('/waiting_question_chat');
+        if (questionsQueue.length > 0)
+            session.replaceDialog('/question_received', questionsQueue.shift());
+        else
+            session.replaceDialog('/waiting_question_chat');
     }
 ]);
 
@@ -87,6 +92,6 @@ client.connect(3000, '127.0.0.1', function() {
     client.write(JSON.stringify({'clientType': 'operator'}));
 });
 
-function sendAnswer(answer) {
-    client.write(JSON.stringify({'answer': answer}));
+function sendAnswer(question, answer) {
+    client.write(JSON.stringify({'answer': answer, 'question': question, 'ok': true}));
 }

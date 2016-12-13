@@ -25,22 +25,32 @@ var connector = new builder.ConsoleConnector().listen();
 var bot = new builder.UniversalBot(connector);
 
 var userAddress = undefined;
-var waitingForAnswer = false;
 
 function askOperator(question) {
     client.write(JSON.stringify({'target': 'operator', 'question': question}));
-    waitingForAnswer = true;
 }
 
 function showAnswer(answer) {
-    if (waitingForAnswer && userAddress != undefined) {
-        waitingForAnswer = false;
-        bot.beginDialog(userAddress, '/answer_received', answer);
+    if (userAddress != undefined) {
+        if (answer.ok == true) {
+            if (answer.origin = 'operator')
+                bot.beginDialog(userAddress, '/operator_answer_received', answer);
+            else
+                bot.beginDialog(userAddress, '/ai_answer_received', answer);
+        } else {
+            askOperator(answer.question);
+            bot.beginDialog(userAddress, '/waiting_operator_chat');
+        }
     }
+}
+
+function askAI(question) {
+    client.write(JSON.stringify({'target': 'ai', 'question': question}));
 }
 
 bot.dialog('/', [
     function (session) {
+        userAddress = session.message.address;
         if (!session.userData.alreadyHello) {
             session.userData.alreadyHello = true;
             builder.Prompts.text(session, "Здравствуйте, что вы хотите узнать? Вы можете задать вопрос по трудовому кодексу РФ.");
@@ -49,28 +59,51 @@ bot.dialog('/', [
         }
     },
     function (session, results) {
-        session.send("К сожалению, я не понял вас.");
-        userAddress = session.message.address;
-        askOperator(results.response);
+        session.userData.waitingForAnswer = true;
         session.userData.firstWaitingTurn = true;
-        session.beginDialog('/waiting_operator_chat');
+        session.beginDialog('/waiting_ai_chat');
+        askAI(results.response);
     }
 ]);
 
-bot.dialog('/answer_received', [
+bot.dialog('/ai_answer_received', [
     function (session, args) {
+        session.userData.waitingForAnswer = false;
+        session.send("Я так понял, что вы имели в виду:\n%s", args.question);
+        session.send("Я нашел ответ на ваш вопрос:\n%s", args.answer);
+        session.replaceDialog('/');
+    }
+]);
+
+bot.dialog('/operator_answer_received', [
+    function (session, args) {
+        session.userData.waitingForAnswer = false;
         session.send("Оператор ответил вам:\n%s", args.answer);
         session.replaceDialog('/');
     }
 ]);
 
+bot.dialog('/waiting_ai_chat', [
+    function (session) {
+        if (session.userData.waitingForAnswer)
+            builder.Prompts.text(session, "Секундочку...");
+        else
+            session.replaceDialog('/');
+    },
+    function (session) {
+        session.replaceDialog('/waiting_ai_chat');
+    }
+]);
+
 bot.dialog('/waiting_operator_chat', [
     function (session) {
-        if (waitingForAnswer) {
-            if (session.userData.firstWaitingTurn)
+        if (session.userData.waitingForAnswer) {
+            if (session.userData.firstWaitingTurn) {
+                session.send("К сожалению, я не понял вас.");
                 builder.Prompts.text(session, "Подождите немного, пока оператор лично ответит на ваш вопрос.");
-            else
+            } else {
                 builder.Prompts.text(session, "Оператор пока что не ответил, подождите немного.");
+            }
         } else {
             session.endDialog();
         }

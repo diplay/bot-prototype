@@ -10,14 +10,24 @@ function debug(msg) {
 
 var userSocket = undefined, operatorSocket = undefined;
 
-function processUserQuery(data) {
+function processUserQuery(json) {
+    var data = JSON.parse(json);
     debug("Processing user query: " + data);
-    if (operatorSocket != undefined)
-        operatorSocket.write(data);
+    if (data.target == 'operator') {
+        if (operatorSocket != undefined)
+            operatorSocket.write(json);
+    } else if (data.target == 'ai') {
+        //TODO: pass question to script
+        //for now assume we cannot find a question
+        userSocket.write(JSON.stringify({"question": data.question, "ok": false, "origin": "ai"}));
+    } else {
+        debug("Shiiiet");
+    }
 }
 
 function processOperatorQuery(data) {
     debug("Processing operator query: " + data);
+    data.origin = "operator";
     if (userSocket != undefined)
         userSocket.write(data);
 }
