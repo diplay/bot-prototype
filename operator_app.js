@@ -50,25 +50,19 @@ setInterval(
     },
     1000);
 
-var server = net.createServer(function(sock) {
-    debug("Client connected");
-    socket = sock;
+var client = net.Socket();
 
-    socket.on('end', function() {
-        debug('Client disconnected');
-    });
-
-    socket.on('data', function(json) {
-        var data = JSON.parse(json);
-        debug("Get data: " + JSON.stringify(data));
-        questionsQueue.push(data);
-    });
+client.on('data', function(json) {
+    var data = JSON.parse(json);
+    debug("Get data: " + JSON.stringify(data));
+    questionsQueue.push(data);
 });
 
-server.listen(3000, function() {
-  debug('Server bound');
+client.connect(3000, '127.0.0.1', function() {
+    debug('Connected to server');
+    client.write(JSON.stringify({'clientType': 'operator'}));
 });
 
 function sendAnswer(answer) {
-    socket.write(JSON.stringify({'answer': answer}));
+    client.write(JSON.stringify({'answer': answer}));
 }

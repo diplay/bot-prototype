@@ -12,6 +12,7 @@ var client = new net.Socket();
 
 client.connect(3000, '127.0.0.1', function() {
     debug('Connected to server');
+    client.write(JSON.stringify({'clientType': 'user'}));
 });
 
 client.on('data', function (json) {

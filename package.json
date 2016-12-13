@@ -1,6 +1,7 @@
 {
     "dependencies":
     {
-        "botbuilder": "*"
+        "botbuilder": "*",
+        "mongodb": "*"
     }
 }
