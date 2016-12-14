@@ -1,9 +1,9 @@
 import json
 import logging
 
-import semantics
+from SentSimCheck.core import semantics
 import sys
-from utils import clear_line
+from SentSimCheck.core.utils import clear_line
 
 
 def read_data_model(file_name: str) -> dict:
@@ -107,12 +107,12 @@ def print_questions_model(qm):
 
 def load_questions_model(file_name, w2v_model, vectorize=True):
     qmodel = read_data_model(file_name)
-    logging.info('Loading questions model...')
+    logging.warning('Loading questions model...')
     if vectorize:
         logging.info('Vectorizing model...')
         qmodel['matrices'] = [semantics.bag_to_matrix(bag, w2v_model) for bag in qmodel['bags']]
         qmodel['a_matrices'] = [semantics.bag_to_matrix(bag, w2v_model) for bag in qmodel['associations']]
-    logging.info('Questions model (\'%s\') successfully loaded' % file_name)
+    logging.warning('Questions model (\'%s\') successfully loaded' % file_name)
     return qmodel
 
 

@@ -2,8 +2,8 @@ import logging
 
 import numpy as np
 
-import semantics as sem
-from utils import clear_line
+from SentSimCheck.core import semantics as sem
+from SentSimCheck.core.utils import clear_line
 
 
 def similar_questions_idx(query: str, qm, w2v_model, topn=5, use_associations=False) -> list:
