@@ -3,8 +3,8 @@ import logging
 import os
 import sys
 
-from SentSimCheck.config import config
-from SentSimCheck.socket_server import start_server
+from config import config
+from socket_server import start_server
 
 
 def create_parser():
