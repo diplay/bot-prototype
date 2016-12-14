@@ -9,16 +9,37 @@ function debug(msg) {
 }
 
 var userSocket = undefined, operatorSocket = undefined;
+var scriptSocket = new net.Socket();
+
+function tryConnect() {
+    scriptSocket.connect(12345, '127.0.0.1', function() {
+        debug('Connected to Tolya\'s script');
+    });
+}
+
+scriptSocket.on('error', function(err) {
+    debug(err);
+    setTimeout(tryConnect, 3000);
+});
+
+scriptSocket.on('data', function(json) {
+    debug('Data from script: ' + json);
+    var data = JSON.parse(json);
+
+    //userSocket.write(JSON.stringify({"question": data.question, "ok": false, "origin": "ai"}));
+});
+
+tryConnect();
 
 function processUserQuery(json) {
+    debug("Processing user query: " + json);
     var data = JSON.parse(json);
-    debug("Processing user query: " + data);
     if (data.target == 'operator') {
         if (operatorSocket != undefined)
             operatorSocket.write(json);
     } else if (data.target == 'ai') {
-        //TODO: pass question to script
-        //for now assume we cannot find a question
+        scriptSocket.write(JSON.stringify({'action': 'get', 'input': data.question}));
+        //tmp
         userSocket.write(JSON.stringify({"question": data.question, "ok": false, "origin": "ai"}));
     } else {
         debug("Shiiiet");
