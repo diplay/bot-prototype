@@ -6,8 +6,8 @@ import traceback
 from pprint import pprint
 from threading import Thread
 
-from config import config
-from core import q_analyzator as qa
+from SentSimCheck.helpers.config import config
+from SentSimCheck.core import q_analyzator as qa
 
 
 def process_input(input_string):

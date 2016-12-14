@@ -2,20 +2,20 @@ import logging
 
 import numpy as np
 
-from core import semantics as sem
-from core.utils import clear_line
+from .semantics import canonize_words, semantic_association, bag_to_matrix, semantic_similarity_fast
+from .utils import clear_line
 
 
 def similar_questions_idx(query: str, qm, w2v_model, topn=5, use_associations=False) -> list:
-    query_bag = sem.canonize_words(query.split())
+    query_bag = canonize_words(query.split())
     if use_associations:
-        query_bag += sem.semantic_association(query_bag, w2v_model, topn=5)
-        query_mx = sem.bag_to_matrix(query_bag, w2v_model)
-        similars = [(i, sem.semantic_similarity_fast(query_mx, np.vstack((mx, qm['a_matrices'][i]))))
+        query_bag += semantic_association(query_bag, w2v_model, topn=5)
+        query_mx = bag_to_matrix(query_bag, w2v_model)
+        similars = [(i, semantic_similarity_fast(query_mx, np.vstack((mx, qm['a_matrices'][i]))))
                     for i, mx in enumerate(qm['matrices']) if len(mx) > 0]
     else:
-        query_mx = sem.bag_to_matrix(query_bag, w2v_model)
-        similars = [(i, sem.semantic_similarity_fast(query_mx, mx))
+        query_mx = bag_to_matrix(query_bag, w2v_model)
+        similars = [(i, semantic_similarity_fast(query_mx, mx))
                     for i, mx in enumerate(qm['matrices'])]
     similars.sort(key=lambda x: x[1], reverse=True)
     return similars[:topn]

@@ -1,6 +1,6 @@
 import json
 
-from core import semantics, q_model
+from SentSimCheck.core import semantics, q_model
 
 
 def singleton(class_):

@@ -13,7 +13,7 @@
 
 * [Скачать модели Word2Vec](models/README.md)
 * [Подготовить список предложений](data/README.md)
-* `python core/q_model.py <path_to_questions> <path_to_w2v_model>`
+* `python3 main.py -c config.json -v DEBUG -t_in data/q_parsed.txt -t_out models/new_model.dat`
 
 ### Использование
 
