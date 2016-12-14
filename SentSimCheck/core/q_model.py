@@ -1,9 +1,9 @@
 import json
 import logging
 
-from SentSimCheck.core import semantics
+from core import semantics
 import sys
-from SentSimCheck.core.utils import clear_line
+from core.utils import clear_line
 
 
 def read_data_model(file_name: str) -> dict:

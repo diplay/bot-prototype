@@ -6,8 +6,8 @@ import traceback
 from pprint import pprint
 from threading import Thread
 
-from SentSimCheck.config import config
-from SentSimCheck.core import q_analyzator as qa
+from config import config
+from core import q_analyzator as qa
 
 
 def process_input(input_string):
@@ -19,10 +19,12 @@ def process_input(input_string):
     if 'action' not in cmd or 'input' not in cmd:
         logging.error('Missing required JSON fields')
         return json.dumps({'success': False, 'result': 'Missing required JSON fields: \'action\' or \'input\''})
-    tmp = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=5, use_associations=True)
-    pprint(tmp)
-    # TODO: return proper answer
-    return input_string
+    similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3, use_associations=True)
+    result = {'success': True, 'result': {'question': cmd['input'],
+                                          'similar_questions': [{'question': item[0], 'probability': item[1]} for item
+                                                                in similar_questions]}}
+    pprint(similar_questions)
+    return json.dumps(result)
 
 
 def client_thread(conn, ip, port, MAX_BUFFER_SIZE=4096):
