@@ -6,8 +6,9 @@ import traceback
 from pprint import pprint
 from threading import Thread
 
-from SentSimCheck.helpers.config import config
 from SentSimCheck.core import q_analyzator as qa
+from SentSimCheck.core.q_model import generate_questions_model, append_model_to_model, write_data_model, print_questions_model
+from SentSimCheck.helpers.config import config
 
 
 def process_input(input_string):
@@ -19,11 +20,29 @@ def process_input(input_string):
     if 'action' not in cmd or 'input' not in cmd:
         logging.error('Missing required JSON fields')
         return json.dumps({'success': False, 'result': 'Missing required JSON fields: \'action\' or \'input\''})
-    similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3, use_associations=True)
-    result = {'success': True, 'result': {'question': cmd['input'],
-                                          'similar_questions': [{'question': item[0], 'probability': item[1]} for item
-                                                                in similar_questions]}}
-    pprint(similar_questions)
+    if cmd['action'] == 'get':
+        similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3,
+                                                 use_associations=True)
+        result = {'success': True, 'result': {'question': cmd['input'],
+                                              'similar_questions': [{'question': item[0], 'probability': item[1]} for
+                                                                    item
+                                                                    in similar_questions]}}
+        pprint(similar_questions)
+    elif cmd['action'] == 'train':
+        try:
+            logging.info('On the fly training started ...')
+            qm = generate_questions_model([cmd['input']], config.w2v)
+            print_questions_model(qm)
+            append_model_to_model(config.q_model, qm)
+            print_questions_model(config.q_model)
+            write_data_model(config.CONF['q_model'], config.q_model)
+            result = {'success': True, 'result': 'OK'}
+        except Exception as e:
+            logging.error('Exception during on the fly training: {e}'.format(e=e))
+            result = {'success': False, 'result': str(e)}
+    else:
+        logging.error('Unknown cmd: {e}'.format(e=cmd['action']))
+        return json.dumps({'success': False, 'result': 'Unknown action'})
     return json.dumps(result)
 
 

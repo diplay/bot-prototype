@@ -52,7 +52,7 @@ def main():
         return 1
 
     try:
-        config.load_config(options.config)
+        config.load_config(options.config, with_model=not options.train)
     except Exception as e:
         logging.error('Exception during config parsing: {e}'.format(e=e))
         return 1

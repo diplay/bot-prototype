@@ -11,8 +11,9 @@ def read_data_model(file_name: str) -> dict:
 
 
 def write_data_model(file_name: str, data_model: dict):
-    file = open(file_name, mode='w', encoding='utf-8')
-    json.dump(data_model, file, separators=(',', ':'), ensure_ascii=False)
+    json_model = json.dumps(data_model, separators=(',', ':'), ensure_ascii=False)
+    with open(file_name, mode='w', encoding='utf-8') as f:
+        f.write(json_model)
 
 
 def read_questions(file_name: str, remove_punctuation=False, strip=True) -> list:
@@ -53,9 +54,15 @@ def empty_model() -> dict:
             'rates': []}
 
 
-def generate_questions_model(file_name: str, w2v_model, with_semantics=True) -> dict:
+def generate_questions_model(data, w2v_model, with_semantics=True) -> dict:
     logging.info('Generating questions model...')
-    questions = read_questions(file_name)
+    if isinstance(data, str):
+        questions = read_questions(data)
+    elif isinstance(data, list):
+        questions = data
+    else:
+        logging.error('Invalid input data for model training: %s' % data)
+        return empty_model()
     logging.info('Questions count: %s' % len(questions))
     bags, voc = make_bags(questions)
     sa = []
