@@ -37,9 +37,9 @@ def canonize_words(words: list) -> list:
 
 
 def load_w2v_model(file_name: str):
-    logging.info('Loading Word2Vec model. Could take some time ...')
+    logging.warning('Loading Word2Vec model. Could take some time ...')
     w2v_model = gensim.models.Word2Vec.load_word2vec_format(file_name, binary=True, encoding='utf-8')
-    logging.info('Word2Vec model \'%s\' loaded!' % file_name)
+    logging.warning('Word2Vec model \'%s\' loaded!' % file_name)
     return w2v_model
 
 
