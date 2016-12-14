@@ -28,6 +28,7 @@ class Settings:
         with open(config_path) as f:
             self.CONF = json.loads(f.read())
         self.w2v = semantics.load_w2v_model(self.CONF['w2v_model'])
+        self.w2v.init_sims()
         self.q_model = q_model.load_questions_model(self.CONF['q_model'], self.w2v, vectorize=True)
         self.confidence_threshold = self.CONF.get('confidence_threshold', 0.2)
 
