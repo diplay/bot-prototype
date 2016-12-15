@@ -45,7 +45,7 @@ def process_input(input_string):
                 append_model_to_model(config.q_model, qm, config.w2v)
                 logging.info('Saving new model ...')
                 write_data_model(config.CONF['q_model'], config.q_model)
-                result = {'success': True, 'result': 'OK'}
+                result = {'success': True, 'result': cmd['input']}
         except Exception as e:
             logging.error('Exception during on the fly training: {e}'.format(e=e))
             result = {'success': False, 'result': str(e)}
