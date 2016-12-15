@@ -100,5 +100,5 @@ def semantic_association(bag: list, w2v_model, topn=10) -> list:
         assoc_lst = w2v_model.most_similar(positive=positive_lst, topn=topn)
         return [a[0] for a in assoc_lst]
     else:
-        logging.warning('Empty association for bag:', bag)
+        logging.warning('Empty association for bag: %s' % bag)
         return ['пустота_S']
