@@ -39,33 +39,40 @@ function processAnswerFromScript(json) {
     debug('Data from script: ' + json);
     var data = JSON.parse(json);
 
-    var nearestQuestion = data.result['similar_questions'][0].question;
-    var p = data.result['similar_questions'][0].probability;
-    if (p < 0.11) {
-        debug("Cannot find question with ai");
-        userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
-    } else {
-        debug("looking for question in db: " + nearestQuestion);
-
+    if (data.context.action == "train") {
         db.collection('questions')
-            .find({'question': nearestQuestion})
-            .toArray(function (err, docs) {
-                debug(docs)
-                if (docs.length > 0) {
-                    debug("Found answer in db: " + docs[0].answer);
-                    userSocket.write(JSON.stringify(
-                        {
-                            "question": nearestQuestion,
-                            "original_question": data.result.question,
-                            'answer': docs[0].answer,
-                            "ok": data.success,
-                            "origin": "ai"
-                        }
-                    ));
-                } else {
-                    userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
-                }
-            });
+            .insert({'question': data.result, 'answer': data.context.answer}, function (err) {
+                debug(err);
+        });
+    } else {
+        var nearestQuestion = data.result['similar_questions'][0].question;
+        var p = data.result['similar_questions'][0].probability;
+        if (p < 0.11) {
+            debug("Cannot find question with ai");
+            userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
+        } else {
+            debug("looking for question in db: " + nearestQuestion);
+
+            db.collection('questions')
+                .find({'question': nearestQuestion})
+                .toArray(function (err, docs) {
+                    debug(docs)
+                    if (docs.length > 0) {
+                        debug("Found answer in db: " + docs[0].answer);
+                        userSocket.write(JSON.stringify(
+                            {
+                                "question": nearestQuestion,
+                                "original_question": data.result.question,
+                                'answer': docs[0].answer,
+                                "ok": data.success,
+                                "origin": "ai"
+                            }
+                        ));
+                    } else {
+                        userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
+                    }
+                });
+        }
     }
 }
 
@@ -95,11 +102,24 @@ function processUserQuery(json) {
     }
 }
 
-function processOperatorQuery(data) {
-    debug("Processing operator query: " + data);
+function processOperatorQuery(json) {
+    debug("Processing operator query: " + json);
+    data = JSON.parse(json);
     data.origin = "operator";
+    if (scriptSocket != undefined) {
+        queueToSendToScript.push(JSON.stringify(
+            {
+                'action': 'train',
+                'input': data.question,
+                'context': {
+                    'action': 'train',
+                    'answer': data.answer
+                }
+            }));
+        sendDataToScript();
+    }
     if (userSocket != undefined)
-        userSocket.write(data);
+        userSocket.write(JSON.stringify(data));
 }
 
 var server = net.createServer(function(socket) {

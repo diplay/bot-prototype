@@ -2,6 +2,7 @@
     "dependencies":
     {
         "botbuilder": "*",
-        "mongodb": "*"
+        "mongodb": "*",
+        "restify": "*"
     }
 }

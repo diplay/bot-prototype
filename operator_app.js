@@ -61,7 +61,6 @@ bot.dialog('/question_received', [
         builder.Prompts.text(session, "Пришел вопрос:\n" + args.question + "\nВаш ответ:");
     },
     function (session, results) {
-        //TODO: send answer to Tolya's script
         answeringNow = false;
         sendAnswer(session.userData.currentQuestion, results.response);
         session.send("Спасибо за ответ, %s! Система запомнит его.", userName);

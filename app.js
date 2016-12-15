@@ -1,5 +1,6 @@
 var builder = require('botbuilder');
 var net = require('net');
+var restify = require('restify');
 
 var isDebug = true;
 
@@ -21,8 +22,19 @@ client.on('data', function (json) {
     showAnswer(data);
 });
 
-var connector = new builder.ConsoleConnector().listen();
+var restifyServer = restify.createServer();
+restifyServer.listen(3978, function () {
+    console.log("%s listening to %s", restifyServer.name, restifyServer.url);
+});
+
+//var connector = new builder.ConsoleConnector().listen();
+var connector = new builder.ChatConnector({
+    appId: "",
+    appPassword: ""
+});
+
 var bot = new builder.UniversalBot(connector);
+restifyServer.post("/api/messages", connector.listen());
 
 var userAddress = undefined; //assume we have one user now
 
