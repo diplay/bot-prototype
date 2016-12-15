@@ -4,3 +4,4 @@ venv
 *.pyc
 *.bin.gz
 .idea
+config.json
