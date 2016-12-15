@@ -13,7 +13,7 @@
 
 * [Скачать модели Word2Vec](models/README.md)
 * [Подготовить список предложений](data/README.md)
-* `python3 main.py -c config.json -v DEBUG -t_in data/q_parsed.txt -t_out models/new_model.dat`
+* `python3 main.py -c config.json -v DEBUG --train -t_in data/q_parsed.txt -t_out models/new_model.dat`
 
 ### Использование
 
@@ -21,4 +21,3 @@
 * Общение: `python3 -c "import json;print(json.dumps({'action':'get','input':'Как получить отпуск?'}))" | nc 127.0.0.1 12345`
 * Обучение "на лету": `python3 -c "import json;print(json.dumps({'action':'train','input':'Когда приходит зарплата?'}))" | nc 127.0.0.1 12345`
 
-> Общение пока реализовано частично и будет полностью готово вместе со связью с БД
