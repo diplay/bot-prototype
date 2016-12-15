@@ -41,7 +41,7 @@ function processAnswerFromScript(json) {
 
     var nearestQuestion = data.result['similar_questions'][0].question;
     var p = data.result['similar_questions'][0].probability;
-    if (p < 0.2) {
+    if (p < 0.11) {
         debug("Cannot find question with ai");
         userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
     } else {
