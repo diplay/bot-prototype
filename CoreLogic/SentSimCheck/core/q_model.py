@@ -25,12 +25,16 @@ def read_questions(file_name: str, remove_punctuation=False, strip=True) -> list
     questions = file.readlines()
     cleared_questions = []
     for line in questions:
+        try:
+            j_line = json.loads(line)['question']
+        except:
+            continue
         if remove_punctuation:
-            cleared_questions.append(clear_line(line))
+            cleared_questions.append(clear_line(j_line))
         elif strip:
-            cleared_questions.append(line.strip())
+            cleared_questions.append(j_line.strip())
         else:
-            cleared_questions.append(line)
+            cleared_questions.append(j_line)
     return cleared_questions
 
 
