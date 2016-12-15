@@ -21,13 +21,16 @@ def process_input(input_string):
         logging.error('Missing required JSON fields')
         return json.dumps({'success': False, 'result': 'Missing required JSON fields: \'action\' or \'input\''})
     if cmd['action'] == 'get':
-        similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3,
-                                                 use_associations=True)
-        result = {'success': True, 'result': {'question': cmd['input'],
-                                              'similar_questions': [{'question': item[0], 'probability': item[1]} for
-                                                                    item
-                                                                    in similar_questions]}}
-        pprint(similar_questions)
+        if not cmd['input']:
+            logging.error('Got empty request')
+            result = {'success': False, 'result': 'Empty request'}
+        else:
+            similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3,
+                                                     use_associations=True)
+            result = {'success': True, 'result': {'question': cmd['input'],
+                                                  'similar_questions': [{'question': item[0], 'probability': item[1]}
+                                                                        for item in similar_questions]}}
+            pprint(similar_questions)
     elif cmd['action'] == 'train':
         try:
             logging.info('On the fly training started ...')
