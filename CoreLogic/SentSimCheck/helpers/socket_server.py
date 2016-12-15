@@ -7,7 +7,7 @@ from pprint import pprint
 from threading import Thread
 
 from SentSimCheck.core import q_analyzator as qa
-from SentSimCheck.core.q_model import generate_questions_model, append_model_to_model, write_data_model, print_questions_model
+from SentSimCheck.core.q_model import generate_questions_model, append_model_to_model, write_data_model
 from SentSimCheck.helpers.config import config
 
 
@@ -32,11 +32,16 @@ def process_input(input_string):
         try:
             logging.info('On the fly training started ...')
             qm = generate_questions_model([cmd['input']], config.w2v)
-            print_questions_model(qm)
-            append_model_to_model(config.q_model, qm)
-            print_questions_model(config.q_model)
-            write_data_model(config.CONF['q_model'], config.q_model)
-            result = {'success': True, 'result': 'OK'}
+            if not qm['vocabulary']:
+                logging.error('Could not get ant information from question: {q}'.format(q=cmd['input']))
+                result = {'success': False,
+                          'result': 'Could not get ant information from question: {q}'.format(q=cmd['input'])}
+            else:
+                logging.info('Merging models ...')
+                append_model_to_model(config.q_model, qm, config.w2v)
+                logging.info('Saving new model ...')
+                write_data_model(config.CONF['q_model'], config.q_model)
+                result = {'success': True, 'result': 'OK'}
         except Exception as e:
             logging.error('Exception during on the fly training: {e}'.format(e=e))
             result = {'success': False, 'result': str(e)}

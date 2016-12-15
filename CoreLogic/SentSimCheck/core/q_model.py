@@ -1,5 +1,6 @@
 import json
 import logging
+from copy import deepcopy
 
 from .semantics import canonize_words, semantic_association, semantic_density, bag_to_matrix
 from .utils import clear_line
@@ -11,7 +12,10 @@ def read_data_model(file_name: str) -> dict:
 
 
 def write_data_model(file_name: str, data_model: dict):
-    json_model = json.dumps(data_model, separators=(',', ':'), ensure_ascii=False)
+    cleared_model = deepcopy(data_model)
+    cleared_model.pop('matrices', None)
+    cleared_model.pop('a_matrices', None)
+    json_model = json.dumps(cleared_model, separators=(',', ':'), ensure_ascii=False)
     with open(file_name, mode='w', encoding='utf-8') as f:
         f.write(json_model)
 
@@ -81,23 +85,25 @@ def generate_questions_model(data, w2v_model, with_semantics=True) -> dict:
             'rates': rates}
 
 
-def append_model_to_model(head_model, tail_model):
-    questions_len = dens_len = assoc_len = rates_len = 0
+def append_model_to_model(head_model, tail_model, w2v_model):
+    questions_len = len(tail_model['questions'])
+    dens_len = len(tail_model['density'])
+    assoc_len = len(tail_model['associations'])
+    rates_len = len(tail_model['rates'])
     for w in tail_model['vocabulary'].keys():
         head_model['vocabulary'][w] = head_model['vocabulary'].get(w, 0) + tail_model['vocabulary'][w]
-
-        questions_len = len(tail_model['questions'])
-        dens_len = len(tail_model['density'])
-        assoc_len = len(tail_model['associations'])
-        rates_len = len(tail_model['rates'])
     for i in range(questions_len):
         if tail_model['bags'][i] not in head_model['bags']:
             head_model['questions'].append(tail_model['questions'][i])
             head_model['bags'].append(tail_model['bags'][i])
+            if 'matrices' in head_model:
+                head_model['matrices'].append(bag_to_matrix(tail_model['bags'][i], w2v_model))
             if dens_len == questions_len:
                 head_model['density'].append(tail_model['density'][i])
             if assoc_len == questions_len:
                 head_model['associations'].append(tail_model['associations'][i])
+                if 'a_matrices' in head_model:
+                    head_model['a_matrices'].append(bag_to_matrix(tail_model['associations'][i], w2v_model))
             if rates_len == questions_len:
                 head_model['rates'].append(tail_model['rates'][i])
         else:

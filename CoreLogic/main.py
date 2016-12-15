@@ -3,9 +3,10 @@ import logging
 import os
 import sys
 
+from SentSimCheck.core.q_model import generate_questions_model, write_data_model
 from SentSimCheck.helpers.config import config
 from SentSimCheck.helpers.socket_server import start_server
-from SentSimCheck.core.q_model import generate_questions_model, write_data_model
+
 
 def create_parser():
     m = argparse.ArgumentParser(description='Sentence\' similarity check %(prog)s',
@@ -59,7 +60,7 @@ def main():
 
     if options.train:
         if not options.train_input or not options.train_output:
-            logging.error('Params \'train_input\' and \'train_output\' are required in training mode!')
+            logging.error('Params \'train_input\' and \'train_output\' are required in the training mode!')
             return 1
         logging.warning('Model training started ...')
         qm = generate_questions_model(options.train_input, config.w2v)
