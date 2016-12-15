@@ -6,3 +6,6 @@ minimal prototype of chatbot
 
 Запуск чата для пользователя:
 `node app.js`
+
+Из файла db.txt можно заполнить базу командой
+`mongoimport --db airobot --collection questions --file db.txt`

@@ -24,7 +24,7 @@ client.on('data', function (json) {
 var connector = new builder.ConsoleConnector().listen();
 var bot = new builder.UniversalBot(connector);
 
-var userAddress = undefined;
+var userAddress = undefined; //assume we have one user now
 
 function askOperator(question) {
     client.write(JSON.stringify({'target': 'operator', 'question': question}));
@@ -33,7 +33,7 @@ function askOperator(question) {
 function showAnswer(answer) {
     if (userAddress != undefined) {
         if (answer.ok == true) {
-            if (answer.origin = 'operator')
+            if (answer.origin == 'operator')
                 bot.beginDialog(userAddress, '/operator_answer_received', answer);
             else
                 bot.beginDialog(userAddress, '/ai_answer_received', answer);
