@@ -1,5 +1,0 @@
-{
-  "w2v_model": "models/ruwikiruscorpora.model.bin.gz",
-  "q_model": "models/questions_model.dat",
-  "confidence_threshold": 0.2
-}
