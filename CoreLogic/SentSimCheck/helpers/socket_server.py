@@ -20,6 +20,7 @@ def process_input(input_string):
     if 'action' not in cmd or 'input' not in cmd:
         logging.error('Missing required JSON fields')
         return json.dumps({'success': False, 'result': 'Missing required JSON fields: \'action\' or \'input\''})
+    context = cmd.get('context', '')
     if cmd['action'] == 'get':
         if not cmd['input']:
             logging.error('Got empty request')
@@ -51,6 +52,7 @@ def process_input(input_string):
     else:
         logging.error('Unknown cmd: {e}'.format(e=cmd['action']))
         return json.dumps({'success': False, 'result': 'Unknown action'})
+    result.update({'context': context})
     return json.dumps(result)
 
 
