@@ -16,8 +16,7 @@ def canonize_words(words: list) -> list:
                 'VERB': '_V', 'INFN': '_V', 'GRND': '_V', 'PRTF': '_V', 'PRTS': '_V',
                 'ADJF': '_A', 'ADJS': '_A',
                 'ADVB': '_ADV',
-                'PRED': '_PRAEDIC',
-                'CONJ': '_C'}
+                'PRED': '_PRAEDIC'}  # 'CONJ': '_C'
 
     normalized = []
     for w in words:
@@ -27,7 +26,7 @@ def canonize_words(words: list) -> list:
         except Exception:
             form = forms[0]
             logging.debug(form)
-        if not (form.tag.POS in ['PREP', 'PRCL', 'NPRO', 'NUMR']  # 'CONJ',
+        if not (form.tag.POS in ['PREP', 'PRCL', 'NPRO', 'NUMR', 'CONJ']
                 or 'Name' in form.tag
                 or 'UNKN' in form.tag
                 or form.normal_form in stop_words):  # 'ADJF'
@@ -94,7 +93,7 @@ def semantic_similarity(bag1, bag2: list, w2v_model, unknown_coef=0.0) -> float:
     return sim_sum / (len(bag1) * len(bag2)) if len(bag1) > 0 and len(bag2) > 0 else 0.0
 
 
-def semantic_association(bag: list, w2v_model, topn=10) -> list:
+def semantic_association(bag: list, w2v_model, topn=8) -> list:
     positive_lst = [w for w in bag if w in w2v_model.vocab]
     if len(positive_lst) > 0:
         assoc_lst = w2v_model.most_similar(positive=positive_lst, topn=topn)

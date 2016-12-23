@@ -1,7 +1,7 @@
 var builder = require('botbuilder');
 var net = require('net');
 
-var isDebug = true;
+var isDebug = false;
 
 function debug(msg) {
     if (isDebug)
