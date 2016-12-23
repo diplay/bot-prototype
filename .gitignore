@@ -6,3 +6,4 @@ venv
 .idea
 config.json
 *.json
+.svn/

@@ -11,7 +11,7 @@ MongoClient.connect('mongodb://localhost:27017/airobot', function(err, _db) {
     db = _db;
 });
 
-var isDebug = true;
+var isDebug = false;
 
 function debug(msg) {
     if (isDebug)
@@ -37,42 +37,108 @@ function sendDataToScript() {
 
 function processAnswerFromScript(json) {
     debug('Data from script: ' + json);
-    var data = JSON.parse(json);
 
+    var data = JSON.parse(json);
     if (data.context.action == "train") {
         db.collection('questions')
-            .insert({'question': data.result, 'answer': data.context.answer}, function (err) {
-                debug(err);
+            .insert({
+                'question': data.result,
+                'answer': data.context.answer,
+                'rule': data.rule},
+                function (err) {
+                    debug(err);
         });
-    } else {
+    } else if (data.context.action == "apply_rule") {
+        userSocket.write(JSON.stringify(
+            {
+                "question": data.question,
+                'answer': data.answer,
+                "ok": data.success,
+                "dependencies": [],
+                "origin": "ai"
+            }
+        ));
+    } else if (data.context.action == "get") {
         var nearestQuestion = data.result['similar_questions'][0].question;
         var p = data.result['similar_questions'][0].probability;
-        if (p < 0.2) {
+        if (p < 0.25) {
             debug("Cannot find question with ai");
-            userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
+            userSocket.write(JSON.stringify(
+                {
+                    "question": data.result.question,
+                    "ok": false,
+                    "origin": "ai",
+                    "dependencies": data.result.dependencies
+                }
+            ));
         } else {
             debug("looking for question in db: " + nearestQuestion);
 
             db.collection('questions')
                 .find({'question': nearestQuestion})
                 .toArray(function (err, docs) {
-                    debug(docs)
                     if (docs.length > 0) {
                         debug("Found answer in db: " + docs[0].answer);
+                        if ('rule' in docs[0]) {
+                            var rule_type = docs[0].rule.rule_type;
+                            if (rule_type == 'static' || rule_type == 'unknown') {
+                                var deps = [];
+                                if (rule_type == 'unknown') {
+                                    deps = ['unknown'];
+                                }
+                                userSocket.write(JSON.stringify(
+                                    {
+                                        "question": nearestQuestion,
+                                        "original_question": data.result.question,
+                                        'answer': docs[0].answer,
+                                        "ok": data.success,
+                                        "dependencies": deps,
+                                        "origin": "ai",
+                                        "apply": true
+                                    }
+                                ));
+                            } else if (docs[0].rule.rule_type == 'unknown') {
+
+                            } else {
+                                queueToSendToScript.push(JSON.stringify(
+                                    {
+                                        'action': 'apply_rule',
+                                        'rule': docs[0].rule,
+                                        'input': data.result.question,
+                                        'answer': docs[0].answer,
+                                        'context': {
+                                            'action': 'apply_rule'
+                                        }
+                                    }
+                                ));
+                                sendDataToScript();
+                            }
+                        } else {
+                            userSocket.write(JSON.stringify(
+                                {
+                                    "question": nearestQuestion,
+                                    "original_question": data.result.question,
+                                    'answer': docs[0].answer,
+                                    "ok": data.success,
+                                    "dependencies": data.result.dependencies,
+                                    "origin": "ai"
+                                }
+                            ));
+                        }
+                    } else {
                         userSocket.write(JSON.stringify(
                             {
-                                "question": nearestQuestion,
-                                "original_question": data.result.question,
-                                'answer': docs[0].answer,
-                                "ok": data.success,
+                                "question": data.result.question,
+                                "dependencies": data.result.dependencies,
+                                "ok": false,
                                 "origin": "ai"
                             }
                         ));
-                    } else {
-                        userSocket.write(JSON.stringify({"question": data.result.question, "ok": false, "origin": "ai"}));
                     }
                 });
         }
+    } else {
+        debug("Shiiiet");
     }
 }
 
@@ -95,7 +161,15 @@ function processUserQuery(json) {
         if (operatorSocket != undefined)
             operatorSocket.write(json);
     } else if (data.target == 'ai') {
-        queueToSendToScript.push(JSON.stringify({'action': 'get', 'input': data.question}));
+        queueToSendToScript.push(JSON.stringify(
+            {
+                'action': 'get',
+                'input': data.question,
+                'context': {
+                    'action': 'get'
+                }
+            }
+        ));
         sendDataToScript();
     } else {
         debug("Shiiiet");
@@ -111,6 +185,7 @@ function processOperatorQuery(json) {
             {
                 'action': 'train',
                 'input': data.question,
+                'rule': data.rule,
                 'context': {
                     'action': 'train',
                     'answer': data.answer

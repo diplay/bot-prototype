@@ -10,6 +10,8 @@ from SentSimCheck.core import q_analyzator as qa
 from SentSimCheck.core.q_model import generate_questions_model, append_model_to_model, write_data_model
 from SentSimCheck.helpers.config import config
 
+from Rules import rules
+
 
 def process_input(input_string):
     try:
@@ -28,9 +30,13 @@ def process_input(input_string):
         else:
             similar_questions = qa.similar_questions(cmd['input'], config.q_model, config.w2v, topn=3,
                                                      use_associations=True)
-            result = {'success': True, 'result': {'question': cmd['input'],
-                                                  'similar_questions': [{'question': item[0], 'probability': item[1]}
-                                                                        for item in similar_questions]}}
+            result = {'success': True,
+                      'result': {'question': cmd['input'],
+                                 'dependencies': rules.find_possible_deps(cmd['input']),
+                                 'similar_questions': [{'question': item[0],
+                                                        'probability': item[1],
+                                                        'dependencies': rules.find_possible_deps(item[0])} for
+                                                      item in similar_questions]}}
             pprint(similar_questions)
     elif cmd['action'] == 'train':
         try:
@@ -45,10 +51,18 @@ def process_input(input_string):
                 append_model_to_model(config.q_model, qm, config.w2v)
                 logging.info('Saving new model ...')
                 write_data_model(config.CONF['q_model'], config.q_model)
-                result = {'success': True, 'result': cmd['input']}
+                logging.error(cmd['rule'])
+                rule = rules.add_rule(cmd['rule'], cmd['input'])
+                result = {'success': True, 'result': cmd['input'], 'rule': rule}
         except Exception as e:
             logging.error('Exception during on the fly training: {e}'.format(e=e))
             result = {'success': False, 'result': str(e)}
+    elif cmd['action'] == 'apply_rule':
+        apply_res = rules.apply_rule(cmd['input'], cmd['answer'], cmd['rule'])
+        if apply_res == '':
+            result = {'success': False, 'question': cmd['input'], 'answer': apply_res}
+        else:
+            result = {'success': True, 'question': cmd['input'], 'answer': apply_res}
     else:
         logging.error('Unknown cmd: {e}'.format(e=cmd['action']))
         return json.dumps({'success': False, 'result': 'Unknown action'})

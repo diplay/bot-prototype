@@ -3,7 +3,7 @@ var net = require('net');
 var restify = require('restify');
 var process = require('process');
 
-var isDebug = true;
+var isDebug = false;
 
 function debug(msg) {
     if (isDebug)
@@ -80,16 +80,101 @@ bot.dialog('/question_received', [
     function (session, args) {
         answeringNow = true;
         session.userData.currentQuestion = args.question;
+        session.userData.currentDependencies = args.dependencies;
         builder.Prompts.text(session, "Пришел вопрос:\n" + args.question + "\nВаш ответ:");
     },
     function (session, results) {
+        if (session.userData.currentDependencies.length == 1) {
+            session.userData.answer = results.response;
+            session.replaceDialog('/add_question_rule', questionsQueue.shift());
+        } else {
+            answeringNow = false;
+            sayThanks(session, session.userData.currentQuestion, results.response, {});
+        }
+    }
+]);
+
+bot.dialog('/add_question_rule', [
+    function (session, args) {
+        session.send('Cпасибо за ответ. Помогите, пожалуйста, улучшить систему.\n' +
+            'Ответьте на несколько вопросов:');
+        var deps = session.userData.currentDependencies;
+        if (deps.length == 1) {
+            builder.Prompts.text(session,'Влияют ли на положительность ответа следующие данные: "' +
+                 deps[0].l + ' ' + deps[0].r + '"?');
+        } else {
+            builder.Prompts.text(session, 'Влияют ли введенные данные на ответ?');
+        }
+    },
+    function (session, results) {
+        var answer = results.response.toLowerCase();
+        if (answer == 'да') {
+            session.replaceDialog('/question_rule_type');
+        } else if (answer == 'нет') {
+            answeringNow = false;
+            rule = {
+                'rule_type': 'static'
+            };
+            sayThanks(session, session.userData.currentQuestion, session.userData.answer, rule);
+        } else {
+            debug('Shiiiet');
+        }
+    }
+]);
+
+bot.dialog('/question_rule_type', [
+    function (session, args) {
+        builder.Prompts.text(session,'Каким именно образом это влияет на ответ (выберите цифру)?\n' +
+                     '1. Ответ зависит от того больше или меньше введенные данные какой-то величины\n' +
+                     '2. Другое\n');
+    },
+    function (session, results) {
+        if (results.response == '1') {
+            session.userData.ruleType = 'less';
+            session.replaceDialog('/question_cmp_op');
+        } else if (results.response == '2') {
+            answeringNow = false;
+            rule = {
+                'rule_type': 'unknown'
+            };
+            sayThanks(session, session.userData.currentQuestion, session.userData.answer, rule);
+        } else {
+            session.replaceDialog('/question_rule_type');
+        }
+    }
+]);
+
+bot.dialog('/question_cmp_op', [
+    function (session, args) {
+        builder.Prompts.text(session, 'Чтобы ответ был положительный данные в ответе должны быть больше или равны (>=) или ' +
+                     'меньше или равны (<=) какой-то величины (введите >= или <=)?');
+    },
+    function (session, results) {
+        if (results.response == '>=') {
+            session.userData.op = '>=';
+        } else if (results.response == '<=') {
+            session.userData.op = '<=';
+        } else {
+            session.replaceDialog('/question_cmp_op')
+        }
+        session.replaceDialog('/question_cmp_val')
+    }
+]);
+
+bot.dialog('/question_cmp_val', [
+    function (session, args) {
+        builder.Prompts.text(session, 'Введите, пожалуйста, значение меньше или больше которого должно быть значение' +
+                     ', чтобы ответ был положительным.');
+    },
+    function (session, results) {
         answeringNow = false;
-        sendAnswer(session.userData.currentQuestion, results.response);
-        session.send("Спасибо за ответ, %s! Система запомнит его.", userName);
-        if (questionsQueue.length > 0)
-            session.replaceDialog('/question_received', questionsQueue.shift());
-        else
-            session.replaceDialog('/waiting_question_chat');
+        rule = {
+            'rule_type': 'less',
+            'op': session.userData.op,
+            'value': results.response,
+            'dep': session.userData.currentDependencies[0]
+        };
+        sayThanks(session, session.userData.currentQuestion, session.userData.answer, rule);
     }
 ]);
 
@@ -113,6 +198,15 @@ client.connect(3000, '127.0.0.1', function() {
     client.write(JSON.stringify({'clientType': 'operator'}));
 });
 
-function sendAnswer(question, answer) {
-    client.write(JSON.stringify({'answer': answer, 'question': question, 'ok': true}));
+function sendAnswer(question, answer, rule) {
+    client.write(JSON.stringify({'answer': answer, 'question': question, 'rule': rule, 'ok': true}));
+}
+
+function sayThanks(session, currentQuestion, answer, rule) {
+    sendAnswer(currentQuestion, answer, rule);
+    session.send("Спасибо за ответ, %s! Система запомнит его.", userName);
+    if (questionsQueue.length > 0)
+        session.replaceDialog('/question_received', questionsQueue.shift());
+    else
+        session.replaceDialog('/waiting_question_chat');
 }

@@ -3,7 +3,7 @@ var net = require('net');
 var restify = require('restify');
 var process = require('process');
 
-var isDebug = true;
+var isDebug = false;
 
 function debug(msg) {
     if (isDebug)
@@ -49,7 +49,11 @@ if (!useConsole) {
 var userAddress = undefined; //assume we have one user now
 
 function askOperator(question) {
-    client.write(JSON.stringify({'target': 'operator', 'question': question}));
+    var deps = question.dependencies;
+    if (deps[0] == 'unknown') {
+        deps = [];
+    }
+    client.write(JSON.stringify({'target': 'operator', 'question': question.question, 'dependencies': deps}));
 }
 
 function showAnswer(answer) {
@@ -60,7 +64,7 @@ function showAnswer(answer) {
             else
                 bot.beginDialog(userAddress, '/ai_answer_received', answer);
         } else {
-            askOperator(answer.question);
+            askOperator(answer);
             bot.beginDialog(userAddress, '/waiting_operator_chat');
         }
     }
@@ -91,9 +95,27 @@ bot.dialog('/', [
 bot.dialog('/ai_answer_received', [
     function (session, args) {
         session.userData.waitingForAnswer = false;
+        session.userData.answer = args;
         session.send("Я так понял, что вы имели в виду:\n%s", args.question);
-        session.send("Я нашел ответ на ваш вопрос:\n%s", args.answer);
-        session.replaceDialog('/');
+        if (args.dependencies.length > 0) {
+            builder.Prompts.text(session, 'Я нашел ответ на ваш вопрос:\n' + args.answer +
+                '\nОднако, данный ответ может быть не точным.\n' +
+                'Хотите, чтобы опепратор ответил на ваш вопрос?.');
+        } else {
+            session.send("Я нашел ответ на ваш вопрос:\n%s", args.answer);
+            session.replaceDialog('/');
+        }
+    },
+    function (session, results) {
+        if(results.response.toLowerCase() == 'да') {
+            session.userData.firstWaitingTurn = false;
+            session.userData.waitingForAnswer = true;
+            session.userData.answer.question = session.userData.answer.original_question;
+            askOperator(session.userData.answer);
+            session.replaceDialog('/waiting_operator_chat');
+        } else {
+            session.replaceDialog('/');
+        }
     }
 ]);
 

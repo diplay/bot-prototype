@@ -4,6 +4,15 @@ minimal prototype of chatbot
 Установить зависимости:
 `npm install`
 
+Построить проект seman:
+```
+export RML=`pwd`/Thirdparty/seman
+./build_seman_project.sh
+```
+
+При запуске добавить переменную среды RML, указывающую на построенный проект Thirdparty/seman.
+`export RML=`pwd`/Thirdparty/seman`
+
 Запуск сервера:
 `node server.js`
 
