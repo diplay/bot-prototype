@@ -11,6 +11,7 @@ export RML=`pwd`/Thirdparty/seman
 ```
 
 При запуске добавить переменную среды RML, указывающую на построенный проект Thirdparty/seman.
+
 ``export RML=`pwd`/Thirdparty/seman``
 
 Запуск сервера:
