@@ -1,5 +1,7 @@
 var builder = require('botbuilder');
 var net = require('net');
+var restify = require('restify');
+var process = require('process');
 
 var isDebug = false;
 
@@ -8,10 +10,30 @@ function debug(msg) {
         console.log("[Debug]", msg);
 }
 
+var useConsole = false;
+
+for (var i = 1; i < process.argv.length; ++i)
+    if (process.argv[i] == '--console')
+        useConsole = true;
+
 var socket = undefined;
 
-var connector = new builder.ConsoleConnector().listen();
+var connector = useConsole ?
+    new builder.ConsoleConnector().listen()
+    : new builder.ChatConnector({
+        appId: "",
+        appPassword: ""
+    });
+
 var bot = new builder.UniversalBot(connector);
+
+if (!useConsole) {
+    var restifyServer = restify.createServer();
+    restifyServer.listen(3979, function () {
+        console.log("%s listening to %s", restifyServer.name, restifyServer.url);
+    });
+    restifyServer.post("/api/messages", connector.listen());
+}
 
 var userAddress = undefined;
 var userName = "";
